@@ -1,0 +1,3 @@
+A Gallery2 scraper.  Caches pages locally, writes metadata to sqlite3 table.  Lots of TODO.
+
+Thanks to gameguy43 whose code got me started.
