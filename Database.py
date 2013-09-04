@@ -10,10 +10,10 @@ class Schema(object):
         'short_desc        TEXT',
         'long_desc         TEXT',
         'date              TEXT',
+        'album_url         TEXT',
+        'highlight_pic_url TEXT',
         'num_items         INTEGER',
         'tot_items         INTEGER',
-        'highlight_pic_url TEXT',
-        'album_url         TEXT',
         'num_views         INTEGER',
         'num_comments      INTEGER',
         'state             INTEGER',
@@ -26,8 +26,10 @@ class Schema(object):
         'short_desc        TEXT',
         'long_desc         TEXT',
         'date              TEXT',
-        'full_size_img_url TEXT',
         'image_page_url    TEXT',
+        'full_size_img_url TEXT',
+        'width             INTEGER',
+        'height            INTEGER',
         'num_views         INTEGER',
         'num_comments      INTEGER',
         'state             INTEGER',
@@ -99,9 +101,33 @@ class Database(object):
     cur = self._run_cmd(cmd, values)
     return cur.lastrowid
 
+  def count_rows(self, table, criteria=None):
+    self._verify_table_is_in_schema(table)
+    cmd = 'SELECT COUNT(*) FROM %s %s' % (table, self._get_where(criteria))
+    return self._run_cmd(cmd).fetchone()[0]
+
+  def get_rows(self, table, criteria=None):
+    self._verify_table_is_in_schema(table)
+    cmd = 'SELECT * FROM %s %s' % (table, self._get_where(criteria))
+    cur = self._run_cmd(cmd)
+    return [ self._build_row(table, row) for row in cur.fetchall() ]
+    # Returning an iterator locks the database, so updates aren't allowed.
+    # Had to just return a list for scrape_image_sizes() to work.
+    # TODO: return a cursor so calling code can update last-row?
+    #while True:
+    #  row = cur.fetchone()
+    #  if not row:
+    #    return
+    #  yield self._build_row(table, row)
+
+  def _get_where(self, criteria):
+    if not criteria:
+      return ''
+    return 'WHERE (%s)' % criteria  # Danger, SQL injection!
+
   def get_row_by_field(self, table, field, value):
     self._verify_field_is_in_schema(table, field)
-    cmd = 'SELECT * from %s WHERE %s=?' % (table, field)
+    cmd = 'SELECT * FROM %s WHERE %s=?' % (table, field)
     cur = self._run_cmd(cmd, [value])
     rows = cur.fetchall()
     if not rows or len(rows) == 0:
@@ -109,7 +135,10 @@ class Database(object):
     if len(rows) > 1:
       raise DbException('Multiple rows (%d) returned for query: %s'
         % (len(rows), cmd))
-    return dict(zip(self.schema.fields(table), rows[0]))
+    return self._build_row(table, rows[0])
+
+  def _build_row(self, table, row):
+    return dict(zip(self.schema.fields(table), row))
 
   def update_row_by_field(self, table, field, value, data):
     self._verify_field_is_in_schema(table, field)
@@ -118,6 +147,10 @@ class Database(object):
     set_vals = [ v for f, v in data.iteritems() ]
     cmd = 'UPDATE %s SET %s WHERE %s=?' % (table, set_str, field)
     self._run_cmd(cmd, set_vals + [value])
+
+  def _verify_table_is_in_schema(self, table):
+    if not self.schema.fields(table):
+      raise DbException('Invalid table: ' + table)
 
   def _verify_field_is_in_schema(self, table, field):
     if not field in self.schema.fields(table):
@@ -129,7 +162,9 @@ class Database(object):
     if invalid:
       raise DbException('Invalid field: ' + invalid)
 
-  def _run_cmd(self, cmd, values):
+  def _run_cmd(self, cmd, values=None):
+    if values == None:
+      values = []
     #print cmd, values
     with sqlite3.connect(self.fname) as con:
       cur = con.cursor()

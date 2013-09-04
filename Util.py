@@ -15,6 +15,10 @@ def get_soup(url):
 
 BASE_URL = ''
 
+def assert_equals(a, b):
+  if a != b:
+    raise AssertionError('"%s" != "%s"' % (a, b))
+
 def set_base_url(url):
   global BASE_URL
   BASE_URL = url
@@ -28,7 +32,8 @@ def unescape_html(html):
   return unescaper.unescape(html)
 
 def contents(blocks):
-  return unescape_html(blocks[0].string.strip())
+  b = blocks[0] if isinstance(blocks, list) else blocks
+  return unescape_html(b.string.strip())
 
 def date(text):
   return re.sub(

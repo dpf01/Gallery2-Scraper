@@ -1,31 +1,32 @@
 import re
 import Util
 
-ITEM = 1
+IMAGE = 1
 ALBUM = 2
 ALBUM_PREFIX = 'Album: '
 
 def get_thumbs_from_soup(soup):
-  '''Get a list of thumbnails on this page, as <td> elements'''
+  '''Get a list of thumbnails from the soup, as Thumb objects.'''
   table = soup('table', { 'id' : 'gsThumbMatrix' })[0]
   # Filter out the empty <td> elements used for table spacing.
   return [ t for td in table('td') for t in [Thumb(td)] if t.get_type() ]
 
 def get_other_page_urls(soup):
+  '''Get a list of URLs for subsequent pages of this album.'''
   pages = soup('div', 'block-core-Pager')[0]
-  # Return full URLs for pages 2, 3, ...
   return [ Util.full_url(a['href']) for a in pages('a') ]
 
 def get_all_thumbs(album_url):
+  '''Get all thumbnails for the given album URL, including those
+  on subsequent pages of the album.'''
   soup = Util.get_soup(album_url)
-  thumbs = get_thumbs_from_soup(soup)
   urls = get_other_page_urls(soup)
-  for url in urls:
-    soup = Util.get_soup(url)
-    thumbs += get_thumbs_from_soup(soup)
-  return thumbs
+  soups = [soup] + [ Util.get_soup(url) for url in urls ]
+  return [ t for s in soups for t in get_thumbs_from_soup(s) ]
 
 def find_albums_in(parent_album_url, regexp=None):
+  '''Get thumbnails representing albums within the given parent album.
+  If a regexp is provided, only albums matching it are returned.'''
   thumbs = get_all_thumbs(parent_album_url)
   if not regexp:
     return [ t for t in thumbs if t.get_type() == ALBUM ]
@@ -34,6 +35,10 @@ def find_albums_in(parent_album_url, regexp=None):
                               and re.search(regexp, t.get_name()) ]
 
 class Thumb(object):
+  '''A Thumb object encapsulates all the information that can be obtained
+  from a thumbnail (and its associated text) on an album page.  A Thumb
+  may represent an image or an album.
+  '''
   def __init__(self, thumb_soup):
     self.thumb = thumb_soup
     self.type = self._get_type()
@@ -48,7 +53,7 @@ class Thumb(object):
     try:
       thumb_class = self.thumb['class']
       if 'giItemCell' in thumb_class:
-        return ITEM
+        return IMAGE
       elif 'giAlbumCell' in thumb_class:
         return ALBUM
       else:
@@ -101,7 +106,7 @@ class Thumb(object):
     album_date = Util.contents(self.thumb('div', 'date summary'))
     result['date'] = Util.date(Util.get_match('Date: ([-/0-9]*)', album_date))
 
-    if self.get_type() == ITEM:
+    if self.get_type() == IMAGE:
       result['image_page_url'] = self.get_a_href()
     else:
       result['album_url'] = self.get_a_href()
