@@ -2,8 +2,7 @@ import Util
 
 class Image(object):
   '''An Image object is created based on the image pages for each resolution
-  of a given image.
-  '''
+  of a given image.'''
   def __init__(self, image_page_url):
     main_soup = Util.get_soup(image_page_url)
     sizes_div = main_soup('div', 'block-core-PhotoSizes giInfo')[0]
@@ -25,24 +24,28 @@ class Image(object):
     img = img_div('img')[0]
 
     info = {}
-    self._add_size_to_info(info, size, link, img)
+    info['width'], info['height'] = self._get_dimensions(size, link, img)
     info['page_url'] = link
     info['image_url'] = Util.full_url(img['src'])
     info['is_full_size'] = size == self.full_size
     if info['is_full_size']:
-      self.full_size_img_url = link
+      self.full_size_img_url = info['image_url']
     return info
 
-  def _add_size_to_info(self, info, size, link, img):
+  def _get_dimensions(self, size, link, img=None):
     if size != 'Unknown':
-      info['width'], info['height'] = size.split('x')
-      Util.assert_equals(info['width'], img['width'])
-      Util.assert_equals(info['height'], img['height'])
-    elif img.has_key('width') and img.has_key('height'): # Unlikely
-      info['width'] = img['width']
-      info['height'] = img['height']
+      w, h = size.split('x')
+      if img:
+        Util.assert_equals(w, img['width'])
+        Util.assert_equals(h, img['height'])
+    elif img and img.has_key('width') and img.has_key('height'): # Unlikely
+      w = img['width']
+      h = img['height']
     else:
       print 'No size info for image: ' + link
+      w = None
+      h = None
+    return (w, h)
 
   def get_size_infos(self):
     return self.size_info

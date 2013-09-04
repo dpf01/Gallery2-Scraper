@@ -54,20 +54,30 @@ class Scrape(object):
         self._process_thumb(child, rowid)
 
   def scrape_image_sizes(self):
-    images = self.db.get_rows('image')
-    for img_info in images:
-      rowid = img_info['id']
-      url = img_info['image_page_url']
-      image = Image.Image(url)
-      update_info = image.get_update_info()
-      self.db.update_row_by_field('image', 'id', rowid, update_info)
-      print update_info['full_size_img_url'],
-      for size_info in image.get_size_infos():
-        size_info['parent'] = rowid
-        self.db.add_row('size', size_info)
-        print '%sx%s' % (size_info['width'], size_info['height']),
-      print ''
+    if not self.is_scrape_image_sizes_complete():
+      images = self.db.get_rows('image', 'full_size_img_url is null')
+      for img_info in images:
+        self._process_image(img_info)
+      assert self.is_scrape_image_sizes_complete()
 
+  def is_scrape_image_sizes_complete(self):
+    done = self.db.count_rows('image', 'full_size_img_url not null')
+    todo = self.db.count_rows('image', 'full_size_img_url is null')
+    return done > 0 and todo == 0
+
+  def _process_image(self, img_info):
+    rowid = img_info['id']
+    url = img_info['image_page_url']
+    image = Image.Image(url)
+    update_info = image.get_update_info()
+    print url,
+    for size_info in image.get_size_infos():
+      size_info['parent'] = rowid
+      self.db.add_row('size', size_info)
+      print '%sx%s' % (size_info['width'], size_info['height']),
+    # Do this last to ensure all sizes are recorded first.
+    self.db.update_row_by_field('image', 'id', rowid, update_info)
+    print ''
 
 #def get_album_details(url):
 #  soup = Util.get_soup(url)

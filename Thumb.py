@@ -37,8 +37,7 @@ def find_albums_in(parent_album_url, regexp=None):
 class Thumb(object):
   '''A Thumb object encapsulates all the information that can be obtained
   from a thumbnail (and its associated text) on an album page.  A Thumb
-  may represent an image or an album.
-  '''
+  may represent an image or an album.'''
   def __init__(self, thumb_soup):
     self.thumb = thumb_soup
     self.type = self._get_type()
