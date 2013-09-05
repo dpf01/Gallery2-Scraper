@@ -59,7 +59,15 @@ class Scrape(object):
   def is_scrape_image_sizes_complete(self):
     done = self.db.count_rows('image', 'full_size_img_url not null')
     todo = self.db.count_rows('image', 'full_size_img_url is null')
-    return done > 0 and todo == 0
+    if todo > 0:
+      print 'There are %d more images to get sizes for' % todo
+      return False
+    elif done > 0:
+      print 'Image sizes have been scraped for %d images' % done
+      return True
+    else:
+      print 'Oops, there are no images yet, need to scrape_thumbs() first'
+      return False
 
   def _process_image(self, img_info):
     rowid = img_info['id']
@@ -72,6 +80,8 @@ class Scrape(object):
       self.db.add_row('size', size_info)
       print '%sx%s' % (size_info['width'], size_info['height']),
     # Do this last to ensure all sizes are recorded first.
+    # TODO: this should be in a transaction, otherwise you may end up with
+    # duplicate size info if the scraper is interrupted.
     self.db.update_row_by_field('image', 'id', rowid, update_info)
     print ''
 
@@ -80,6 +90,7 @@ class Scrape(object):
       items = self.db.get_rows(table, 'num_comments > 0')
       for info in items:
         self._process_comments(table, info)
+        print 'Saved comments for: ' + info['page_url']
 
   def _process_comments(self, table, info):
     rowid = info['id']
@@ -91,9 +102,40 @@ class Scrape(object):
       comment['parent'] = rowid
       self.db.add_row(table + '_comment', comment)
 
+  def scrape_image_files(self):
+    images = self.db.get_rows('image', 'full_size_img_url not null')
+    in_cache_count = 0
+    for img_info in images:
+      url = img_info['full_size_img_url']
+      if Util.check_get_url(url):
+        in_cache_count += 1 # Image was already in cache.
+      else:
+        if in_cache_count > 0:
+          print 'Found %d images already in cache' % in_cache_count
+          in_cache_count = 0
+        print 'Cached image: ' + url
+    if in_cache_count > 0:
+      print 'Found %d images in cache' % in_cache_count
+    print 'A total of %d images are in the cache' % len(images)
+
 if __name__ == '__main__':
   s = Scrape('gallery.db')
+
+  # Scraping thumbnails is an all-or-nothing operation.  If it fails, delete
+  # the database file (manually), fix code if needed, and start over.  Once
+  # successfully completed, it will be skipped on subsequent runs.
   s.scrape_thumbs(Site.BASE_URL, Site.ALBUM_NAME)
+
+  # Scraping image sizes is incremental.  Probably OK to interrupt this and
+  # restart it later, although it might result in duplicate entries in the
+  # 'size' table.
   s.scrape_image_sizes()
+
+  # Scraping comments should be fast since all the HTML pages are already
+  # in the cache, and not all pages have comments.  This code is incomplete.
   #s.scrape_comments() # TODO (maybe)
-  #s.scrape_image_files() # TODO
+
+  # This is the interesting part: downloading the full-size image files.
+  # Files are saved to the UrlCache.  No database updates are made, so this
+  # is also interruptable.
+  s.scrape_image_files()

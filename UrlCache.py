@@ -53,6 +53,16 @@ class UrlCache(object):
         return f.read()
     return self._add_url_to_cache(url, filename)
 
+  def check_get(self, url):
+    '''Check if the URL is already in the cache.  If so, return True.
+    Otherwise, download the URL and return false.'''
+    filename = self._get_cached_url_filename(url)
+    if os.path.exists(filename):
+      return True  # Already cached.
+    else:
+      self._add_url_to_cache(url, filename)
+      return False # Wasn't cached, but is now.
+
   def _get_cached_url_filename(self, url):
     url_hash = hashlib.sha224(url).hexdigest()
     extension = os.path.splitext(urlparse(url).path)[1].strip().lower()

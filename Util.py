@@ -8,6 +8,9 @@ import UrlCache
 _CACHE_DIR = 'cache'
 _cache = UrlCache.UrlCache(_CACHE_DIR)
 
+def check_get_url(url):
+  return _cache.check_get(url)
+
 def get_soup(url):
   '''Get the relevant part of the page'''
   response = _cache.get(url)
