@@ -2,37 +2,29 @@ import sqlite3
 
 class Schema(object):
   def __init__(self):
+    item_common = [
+      'id                INTEGER PRIMARY KEY AUTOINCREMENT',
+      'parent            INTEGER REFERENCES album(id)',
+      'name              TEXT',
+      'short_desc        TEXT',
+      'long_desc         TEXT',
+      'date              TEXT',
+      'page_url          TEXT',
+      'num_views         INTEGER',
+      'num_comments      INTEGER',
+    ]
+
     self.field_defs = {
-      'album' : [
-        'id                INTEGER PRIMARY KEY AUTOINCREMENT',
-        'parent            INTEGER REFERENCES album(id)',
-        'name              TEXT',
-        'short_desc        TEXT',
-        'long_desc         TEXT',
-        'date              TEXT',
-        'album_url         TEXT',
+      'album' : item_common + [
         'highlight_pic_url TEXT',
         'num_items         INTEGER',
         'tot_items         INTEGER',
-        'num_views         INTEGER',
-        'num_comments      INTEGER',
-        'state             INTEGER',
         ],
 
-      'image' : [
-        'id                INTEGER PRIMARY KEY AUTOINCREMENT',
-        'parent            INTEGER REFERENCES album(id)',
-        'name              TEXT', # AKA title?
-        'short_desc        TEXT',
-        'long_desc         TEXT',
-        'date              TEXT',
-        'image_page_url    TEXT',
+      'image' : item_common + [
         'full_size_img_url TEXT',
         'width             INTEGER',
         'height            INTEGER',
-        'num_views         INTEGER',
-        'num_comments      INTEGER',
-        'state             INTEGER',
         ],
 
       'size' : [
@@ -55,7 +47,7 @@ class Schema(object):
 
       'alb_comment' : [
         'id                INTEGER PRIMARY KEY AUTOINCREMENT',
-        'parent            INTEGER REFERENCES image(id)',
+        'parent            INTEGER REFERENCES album(id)',
         'comment           TEXT',
         'author            TEXT',
         'date              TEXT',

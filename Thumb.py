@@ -16,18 +16,18 @@ def get_other_page_urls(soup):
   pages = soup('div', 'block-core-Pager')[0]
   return [ Util.full_url(a['href']) for a in pages('a') ]
 
-def get_all_thumbs(album_url):
+def get_all_thumbs(page_url):
   '''Get all thumbnails for the given album URL, including those
   on subsequent pages of the album.'''
-  soup = Util.get_soup(album_url)
+  soup = Util.get_soup(page_url)
   urls = get_other_page_urls(soup)
   soups = [soup] + [ Util.get_soup(url) for url in urls ]
   return [ t for s in soups for t in get_thumbs_from_soup(s) ]
 
-def find_albums_in(parent_album_url, regexp=None):
+def find_albums_in(parent_url, regexp=None):
   '''Get thumbnails representing albums within the given parent album.
   If a regexp is provided, only albums matching it are returned.'''
-  thumbs = get_all_thumbs(parent_album_url)
+  thumbs = get_all_thumbs(parent_url)
   if not regexp:
     return [ t for t in thumbs if t.get_type() == ALBUM ]
   else:
@@ -89,9 +89,6 @@ class Thumb(object):
     try: return self.img['longdesc']
     except: return None
 
-  def get_a_href(self):
-    return Util.full_url(self.a['href'])
-
   def get_info(self):
     result = {}
     #result['type'] = self.type
@@ -105,10 +102,9 @@ class Thumb(object):
     album_date = Util.contents(self.thumb('div', 'date summary'))
     result['date'] = Util.date(Util.get_match('Date: ([-/0-9]*)', album_date))
 
-    if self.get_type() == IMAGE:
-      result['image_page_url'] = self.get_a_href()
-    else:
-      result['album_url'] = self.get_a_href()
+    result['page_url'] = Util.full_url(self.a['href'])
+
+    if self.get_type() == ALBUM:
       result['highlight_pic_url'] = Util.full_url(self.img['src'])
       album_size = Util.contents(self.thumb('div', 'size summary'))
       num_items = Util.get_match('Size: ([0-9]*) items?', album_size)

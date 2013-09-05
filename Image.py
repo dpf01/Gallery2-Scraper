@@ -12,9 +12,9 @@ def _get_img_tag(soup):
 class Image(object):
   '''An Image object is created based on the image pages for each resolution
   of a given image.'''
-  def __init__(self, image_page_url):
-    self.main_page_url = image_page_url
-    main_soup = Util.get_soup(image_page_url)
+  def __init__(self, page_url):
+    self.page_url = page_url
+    main_soup = Util.get_soup(page_url)
     sizes_div = main_soup('div', 'block-core-PhotoSizes giInfo')[0]
     selects = sizes_div('select') # 0 or 1 select tags.
     if selects:
@@ -34,8 +34,8 @@ class Image(object):
     size = Util.contents(opt)
     link = Util.full_url(opt['value'])
     selected = opt.has_key('selected') and opt['selected'] == 'selected'
-    if selected and link == self.main_page_url + '?g2_imageViewsIndex=0':
-      link = self.main_page_url
+    if selected and link == self.page_url + '?g2_imageViewsIndex=0':
+      link = self.page_url
     page_soup = Util.get_soup(link)
     img = _get_img_tag(page_soup)
 
@@ -58,7 +58,7 @@ class Image(object):
       w = img['width']
       h = img['height']
     else:
-      print 'No size info for image: ' + self.main_page_url
+      print 'No size info for image: ' + self.page_url
       w = None
       h = None
     return (w, h)

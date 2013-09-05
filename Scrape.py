@@ -8,8 +8,6 @@ import Image
 import Thumb
 import Util
 
-# TODO: Iterate through pic resolutions, comments
-
 class Scrape(object):
   def __init__(self, db_name):
     self.db_name = db_name
@@ -25,7 +23,7 @@ class Scrape(object):
   def is_scrape_thumbs_complete(self, thumb):
     info = thumb.get_info()
     try:
-      row = self.db.get_row_by_field('album', 'album_url', info['album_url'])
+      row = self.db.get_row_by_field('album', 'page_url', info['page_url'])
     except Database.DbException:
       return False
 
@@ -42,14 +40,11 @@ class Scrape(object):
   def _process_thumb(self, thumb, parent_rowid=-1):
     thumb_info = thumb.get_info()
     thumb_info['parent'] = parent_rowid
-    if thumb.get_type() == Thumb.IMAGE:
-      rowid = self.db.add_row('image', thumb_info)
-      url = thumb_info['image_page_url']
-      print 'Added image %d: %s' % (rowid, url)
-    else:
-      rowid = self.db.add_row('album', thumb_info)
-      url = thumb_info['album_url']
-      print 'Added album %d: %s' % (rowid, url)
+    url = thumb_info['page_url']
+    table = 'album' if thumb.get_type() == Thumb.ALBUM else 'image'
+    rowid = self.db.add_row(table, thumb_info)
+    print 'Added %s %d: %s' % (table, rowid, url)
+    if thumb.get_type() == Thumb.ALBUM:
       for child in Thumb.get_all_thumbs(url):
         self._process_thumb(child, rowid)
 
@@ -67,7 +62,7 @@ class Scrape(object):
 
   def _process_image(self, img_info):
     rowid = img_info['id']
-    url = img_info['image_page_url']
+    url = img_info['page_url']
     image = Image.Image(url)
     update_info = image.get_update_info()
     print url,
@@ -79,17 +74,19 @@ class Scrape(object):
     self.db.update_row_by_field('image', 'id', rowid, update_info)
     print ''
 
-#def get_album_details(url):
-#  soup = Util.get_soup(url)
-#  album_div = soup('div', 'gbBlock gcBackground1')[0]
-#  album_title = Util.contents(album_div('h2'))
-#  # TODO: check the h2 contents vs. the album name from its thumbnail?
-#def get_image_details(url):
-#  soup = Util.get_soup(url)
-#  full_size_img_url = soup('a', title='Full Size')[0]['href']
+  def scrape_comments(self):
+    for table in ('image', 'album'):
+      items = self.db.get_rows(table, 'num_comments > 0')
+      for info in items:
+        self._process_comments(table, info)
+
+  def _process_comments(self, table, info):
+    rowid = img_info['id']
+    url = img_info['page_url']
 
 if __name__ == '__main__':
   Util.set_base_url('http://ender.snowburst.org:4747/gallery/v/Friends/')
   s = Scrape('gallery.db')
   s.scrape_thumbs(Util.BASE_URL, 'Dan and Laurel')
   s.scrape_image_sizes()
+  s.scrape_comments()
