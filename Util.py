@@ -33,7 +33,7 @@ def unescape_html(html):
 
 def contents(blocks):
   b = blocks[0] if isinstance(blocks, list) else blocks
-  return unescape_html(b.string.strip())
+  return unescape_html(b.contents[0].strip())
 
 def date(text):
   return re.sub(
