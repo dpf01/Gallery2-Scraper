@@ -74,7 +74,7 @@ class Scrape(object):
     url = img_info['page_url']
     image = Image.Image(url)
     update_info = image.get_update_info()
-    print url,
+    print rowid, url,
     for size_info in image.get_size_infos():
       size_info['parent'] = rowid
       self.db.add_row('size', size_info)
@@ -106,6 +106,7 @@ class Scrape(object):
     images = self.db.get_rows('image', 'full_size_img_url not null')
     in_cache_count = 0
     for img_info in images:
+      rowid = img_info['id']
       url = img_info['full_size_img_url']
       if Util.check_get_url(url):
         in_cache_count += 1 # Image was already in cache.
@@ -113,7 +114,7 @@ class Scrape(object):
         if in_cache_count > 0:
           print 'Found %d images already in cache' % in_cache_count
           in_cache_count = 0
-        print 'Cached image: ' + url
+        print 'Cached image #%d: %s' % (rowid, url)
     if in_cache_count > 0:
       print 'Found %d images in cache' % in_cache_count
     print 'A total of %d images are in the cache' % len(images)
