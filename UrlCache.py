@@ -2,7 +2,7 @@ from urlparse import urlparse
 import errno
 import hashlib
 import os
-import urllib
+import time
 import urllib2
 
 def _mkdir_p(path):
