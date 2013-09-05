@@ -1,3 +1,9 @@
-A Gallery2 scraper.  Caches pages locally, writes metadata to sqlite3 table.  Lots of TODO.
+A Gallery2 scraper.  Caches pages locally, writes metadata to sqlite3 table.
+Work-in-progress.
+
+Site.py should define these constants:
+  BASE_URL = 'http://mygallery.example.com/gallery/path/to/album/'
+  ALBUM_NAME = 'Name of album to scrape'
+Adjust for your site and the particular album you want to scrape.
 
 Thanks to gameguy43 whose code got me started.

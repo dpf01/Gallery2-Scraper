@@ -5,13 +5,13 @@ IMAGE = 1
 ALBUM = 2
 ALBUM_PREFIX = 'Album: '
 
-def get_thumbs_from_soup(soup):
+def _get_thumbs_from_soup(soup):
   '''Get a list of thumbnails from the soup, as Thumb objects.'''
   table = soup('table', { 'id' : 'gsThumbMatrix' })[0]
   # Filter out the empty <td> elements used for table spacing.
   return [ t for td in table('td') for t in [Thumb(td)] if t.get_type() ]
 
-def get_other_page_urls(soup):
+def _get_other_page_urls(soup):
   '''Get a list of URLs for subsequent pages of this album.'''
   pages = soup('div', 'block-core-Pager')[0]
   return [ Util.full_url(a['href']) for a in pages('a') ]
@@ -20,9 +20,9 @@ def get_all_thumbs(page_url):
   '''Get all thumbnails for the given album URL, including those
   on subsequent pages of the album.'''
   soup = Util.get_soup(page_url)
-  urls = get_other_page_urls(soup)
+  urls = _get_other_page_urls(soup)
   soups = [soup] + [ Util.get_soup(url) for url in urls ]
-  return [ t for s in soups for t in get_thumbs_from_soup(s) ]
+  return [ t for s in soups for t in _get_thumbs_from_soup(s) ]
 
 def find_albums_in(parent_url, regexp=None):
   '''Get thumbnails representing albums within the given parent album.

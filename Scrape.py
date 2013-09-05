@@ -5,6 +5,7 @@ import os
 import re
 import Database
 import Image
+import Site
 import Thumb
 import Util
 
@@ -81,12 +82,18 @@ class Scrape(object):
         self._process_comments(table, info)
 
   def _process_comments(self, table, info):
-    rowid = img_info['id']
-    url = img_info['page_url']
+    rowid = info['id']
+    url = info['page_url']
+    # TODO.  Something like this:
+    # 'block-comment-ViewComments' / 'one-comment' / p.comment, p.info
+    comments = Comment.get_comments(url)
+    for comment in comments:
+      comment['parent'] = rowid
+      self.db.add_row(table + '_comment', comment)
 
 if __name__ == '__main__':
-  Util.set_base_url('http://ender.snowburst.org:4747/gallery/v/Friends/')
   s = Scrape('gallery.db')
-  s.scrape_thumbs(Util.BASE_URL, 'Dan and Laurel')
+  s.scrape_thumbs(Site.BASE_URL, Site.ALBUM_NAME)
   s.scrape_image_sizes()
-  s.scrape_comments()
+  #s.scrape_comments() # TODO (maybe)
+  #s.scrape_image_files() # TODO

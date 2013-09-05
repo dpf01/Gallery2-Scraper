@@ -37,7 +37,7 @@ class Schema(object):
         'is_full_size      BOOLEAN',
         ],
 
-      'img_comment' : [
+      'image_comment' : [
         'id                INTEGER PRIMARY KEY AUTOINCREMENT',
         'parent            INTEGER REFERENCES image(id)',
         'comment           TEXT',
@@ -45,7 +45,7 @@ class Schema(object):
         'date              TEXT',
         ],
 
-      'alb_comment' : [
+      'album_comment' : [
         'id                INTEGER PRIMARY KEY AUTOINCREMENT',
         'parent            INTEGER REFERENCES album(id)',
         'comment           TEXT',

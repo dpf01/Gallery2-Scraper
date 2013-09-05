@@ -2,34 +2,25 @@ from urlparse import urljoin
 import re
 import HTMLParser
 import BeautifulSoup
+import Site
 import UrlCache
 
-CACHE_DIR = 'cache'
-cache = UrlCache.UrlCache(CACHE_DIR)
+_CACHE_DIR = 'cache'
+_cache = UrlCache.UrlCache(_CACHE_DIR)
 
 def get_soup(url):
   '''Get the relevant part of the page'''
-  response = cache.get(url)
+  response = _cache.get(url)
   soup = BeautifulSoup.BeautifulSoup(response)
   return soup('div', id='gsContent')[0]
 
-BASE_URL = ''
-
-def assert_equals(a, b):
-  if a != b:
-    raise AssertionError('"%s" != "%s"' % (a, b))
-
-def set_base_url(url):
-  global BASE_URL
-  BASE_URL = url
-
 def full_url(url):
-  return urljoin(BASE_URL, url)
+  return urljoin(Site.BASE_URL, url)
 
-unescaper = HTMLParser.HTMLParser()
+_unescaper = HTMLParser.HTMLParser()
 def unescape_html(html):
   '''Unescape things like &amp; &lt; &quot;'''
-  return unescaper.unescape(html)
+  return _unescaper.unescape(html)
 
 def contents(blocks):
   b = blocks[0] if isinstance(blocks, list) else blocks
@@ -46,3 +37,7 @@ def get_match(regexp, text):
     return re.search(regexp, text).group(1)
   except:
     return None
+
+def assert_equals(a, b):
+  if a != b:
+    raise AssertionError('"%s" != "%s"' % (a, b))
