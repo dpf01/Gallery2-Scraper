@@ -5,16 +5,44 @@ IMAGE = 1
 ALBUM = 2
 ALBUM_PREFIX = 'Album: '
 
+def _check_empty_page(soup, element):
+  empty = soup('div', 'gbEmptyAlbum')
+  if not empty:
+    print "Album has no %s and isn't empty." % element
+  return []
+
 def _get_thumbs_from_soup(soup):
   '''Get a list of thumbnails from the soup, as Thumb objects.'''
-  table = soup('table', { 'id' : 'gsThumbMatrix' })[0]
-  # Filter out the empty <td> elements used for table spacing.
-  return [ t for td in table('td') for t in [Thumb(td)] if t.get_type() ]
+  tables = soup('table', { 'id' : 'gsThumbMatrix' })
+  if tables:
+    table = tables[0]
+    # Filter out the empty <td> elements used for table spacing.
+    return [ t for td in table('td') for t in [Thumb(td)] if t.get_type() ]
+  return _check_empty_page(soup, "thumbs")
 
 def _get_other_page_urls(soup):
   '''Get a list of URLs for subsequent pages of this album.'''
-  pages = soup('div', 'block-core-Pager')[0]
-  return [ Util.full_url(a['href']) for a in pages('a') ]
+  urls = []
+  other_soup = soup
+  while True:
+    navigator_div = other_soup('div', 'block-core-Navigator')
+    if not navigator_div:
+      break
+    next_link = navigator_div[0]('a', 'next')
+    if not next_link:
+      break
+    url = Util.full_url(next_link[0]['href'])
+    urls.append(url)
+    other_soup = Util.get_soup(url)
+  if urls:
+    return urls
+
+  # If no next links were found, check for the "Page: 1 2 3 ... 33" <div>.
+  pages_div = soup('div', 'block-core-Pager')
+  if pages_div:
+    pages = pages_div[0]
+    return [ Util.full_url(a['href']) for a in pages('a') ]
+  return _check_empty_page(soup, "pages")
 
 def get_all_thumbs(page_url):
   '''Get all thumbnails for the given album URL, including those
@@ -43,10 +71,14 @@ class Thumb(object):
     self.type = self._get_type()
     if self.type:
       self.a = thumb_soup('a')[0]   # <a href=><img src= alt= longdesc=/></a>
-      self.img = self.a('img')[0]   # <img...>
-      img_class = self.img['class']
-      if img_class != 'giThumbnail':
-        print 'Unexpected image class: ' + img_class
+
+      # Highlight pic may not be present in some cases, e.g., empty album.
+      self.img = None
+      if self.a('img'):
+        self.img = self.a('img')[0]   # <img...>
+        img_class = self.img['class']
+        if img_class != 'giThumbnail':
+          print 'Unexpected image class: ' + img_class
 
   def _get_type(self):
     try:
@@ -105,12 +137,17 @@ class Thumb(object):
     result['page_url'] = Util.full_url(self.a['href'])
 
     if self.get_type() == ALBUM:
-      result['highlight_pic_url'] = Util.full_url(self.img['src'])
-      album_size = Util.contents(self.thumb('div', 'size summary'))
-      num_items = Util.get_match('Size: ([0-9]*) items?', album_size)
-      tot_items = Util.get_match('([0-9]*) items? total', album_size) or num_items
-      result['num_items'] = num_items
-      result['tot_items'] = tot_items
+      if self.img:
+        result['highlight_pic_url'] = Util.full_url(self.img['src'])
+
+      # Album size <div> may not be present in some cases, e.g., empty album.
+      size_div = self.thumb('div', 'size summary')
+      if size_div:
+        album_size = Util.contents(size_div)
+        num_items = Util.get_match('Size: ([0-9]*) items?', album_size)
+        tot_items = Util.get_match('([0-9]*) items? total', album_size) or num_items
+        result['num_items'] = num_items
+        result['tot_items'] = tot_items
 
     # Only appears if item has been viewed.
     view_div = self.thumb('div', 'viewCount summary')
