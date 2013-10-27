@@ -26,6 +26,8 @@ def unescape_html(html):
   return _unescaper.unescape(html)
 
 def contents(blocks):
+  if not blocks:
+    return None
   b = blocks[0] if isinstance(blocks, list) else blocks
   return unescape_html(b.contents[0].strip())
 
