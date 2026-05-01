@@ -1,5 +1,5 @@
 A Gallery2 scraper.  Caches pages locally, writes metadata to sqlite3 table.
-Work-in-progress.
+Obsolete, lol.
 
 Site.py should define these constants:
   BASE_URL = 'http://mygallery.example.com/gallery/path/to/album/'
